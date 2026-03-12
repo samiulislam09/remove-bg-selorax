@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ProductTable, { type Product } from "./components/ProductTable";
+import ProductModal from "./components/ProductModal";
 
 type ApiResponse = {
   data: Product[];
@@ -14,6 +15,7 @@ export default function Home() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/products")
@@ -54,9 +56,20 @@ export default function Home() {
             {error}
           </div>
         ) : (
-          <ProductTable products={products} />
+          <ProductTable
+            products={products}
+            onProductClick={(id) => setSelectedProductId(id)}
+          />
         )}
       </div>
+
+      {/* Product Detail Modal */}
+      {selectedProductId !== null && (
+        <ProductModal
+          productId={selectedProductId}
+          onClose={() => setSelectedProductId(null)}
+        />
+      )}
     </div>
   );
 }
