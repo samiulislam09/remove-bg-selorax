@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import StatusBadge from "./StatusBadge";
 import TimeCell from "./TimeCell";
 import ProductImage from "./ProductImage";
-import { useBackgroundRemoval } from "../hooks/useBackgroundRemoval";
+import ImagePreviewModal from "./ImagePreviewModal";
+import { useAppBridge } from "../contexts/AppBridgeContext";
 
 type Variant = {
   sku_id: number;
@@ -47,13 +48,16 @@ type Props = {
 };
 
 export default function ProductModal({ productId, onClose }: Props) {
+  const { storeId, token } = useAppBridge();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { getState, removeBackground, reset } = useBackgroundRemoval();
+  const [previewImage, setPreviewImage] = useState<{ url: string; alt: string } | null>(null);
 
   useEffect(() => {
-    fetch(`/api/products/${productId}`)
+    fetch(`/api/products/${productId}?store_id=${storeId}`, {
+      headers: { "x-session-token": token },
+    })
       .then((res) => res.json())
       .then((res) => {
         setProduct(res.data);
@@ -76,19 +80,6 @@ export default function ProductModal({ productId, onClose }: Props) {
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
-
-  /** Build per-image removal states for a variant */
-  const buildBgStates = useCallback(
-    (variantKey: string, images: string[]) => {
-      const states: Record<number, { status: "idle" | "loading" | "done" | "error"; resultUrl: string | null; progress: number }> = {};
-      images.forEach((_, i) => {
-        const s = getState(`${variantKey}-${i}`);
-        states[i] = { status: s.status, resultUrl: s.resultUrl, progress: s.progress };
-      });
-      return states;
-    },
-    [getState]
-  );
 
   return (
     <div
@@ -126,7 +117,6 @@ export default function ProductModal({ productId, onClose }: Props) {
               const defaultVariant =
                 product.variants.find((v) => v.is_default === 1) ??
                 product.variants[0];
-              const headerKey = `header-${defaultVariant?.sku_id ?? 0}`;
               const headerImages = defaultVariant?.resolved_images ?? [];
 
               return (
@@ -145,13 +135,10 @@ export default function ProductModal({ productId, onClose }: Props) {
                     images={headerImages}
                     alt={product.name}
                     size="lg"
-                    removeBgStates={buildBgStates(headerKey, headerImages)}
-                    onRemoveBg={(url, i) =>
-                      removeBackground(url, `${headerKey}-${i}`)
+                    onImageClick={(url) =>
+                      setPreviewImage({ url, alt: product.name })
                     }
-                    onResetBg={(i) => reset(`${headerKey}-${i}`)}
                   />
-                  
                 </div>
               );
             })()}
@@ -213,23 +200,20 @@ export default function ProductModal({ productId, onClose }: Props) {
                 </h3>
                 <div className="space-y-3">
                   {product.variants.map((v) => {
-                    const variantKey = `variant-${v.sku_id}`;
                     return (
                       <div
                         key={v.sku_id}
                         className="rounded-lg border border-zinc-100 p-3 transition-colors hover:bg-zinc-50/50"
                       >
                         <div className="flex items-start gap-3">
-                          {/* Variant images with remove-bg */}
+                          {/* Variant images — click to open preview */}
                           <ProductImage
                             images={v.resolved_images}
                             alt={v.variant_name}
                             size="md"
-                            removeBgStates={buildBgStates(variantKey, v.resolved_images)}
-                            onRemoveBg={(url, i) =>
-                              removeBackground(url, `${variantKey}-${i}`)
+                            onImageClick={(url) =>
+                              setPreviewImage({ url, alt: v.variant_name })
                             }
-                            onResetBg={(i) => reset(`${variantKey}-${i}`)}
                           />
 
                           {/* Variant details */}
@@ -275,6 +259,15 @@ export default function ProductModal({ productId, onClose }: Props) {
           </div>
         ) : null}
       </div>
+
+      {/* Image preview lightbox */}
+      {previewImage && (
+        <ImagePreviewModal
+          imageUrl={previewImage.url}
+          alt={previewImage.alt}
+          onClose={() => setPreviewImage(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,15 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { resolveProductImages } from "@/app/lib/image";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { seloraxApi } = require("@selorax/app-sdk");
 
-const storeId = process.env.SELORAX_STORE_ID!;
-
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const storeId = req.nextUrl.searchParams.get("store_id");
+  if (!storeId) {
+    return NextResponse.json({ message: "store_id is required" }, { status: 400 });
+  }
+
   const { id } = await params;
 
   try {
