@@ -16,6 +16,7 @@ export type Product = {
 
 type ProductTableProps = {
   products: Product[];
+  onProductClick: (productId: number) => void;
 };
 
 const columns = [
@@ -30,7 +31,7 @@ const columns = [
   "Updated",
 ] as const;
 
-export default function ProductTable({ products }: ProductTableProps) {
+export default function ProductTable({ products, onProductClick }: ProductTableProps) {
   if (products.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-zinc-200 text-sm text-zinc-400">
@@ -58,7 +59,8 @@ export default function ProductTable({ products }: ProductTableProps) {
           {products.map((p) => (
             <tr
               key={p.product_id}
-              className="transition-colors hover:bg-zinc-50/50"
+              onClick={() => onProductClick(p.product_id)}
+              className="cursor-pointer transition-colors hover:bg-zinc-50/50"
             >
               <td className="px-4 py-3 font-mono text-xs text-zinc-400">
                 {p.product_id}

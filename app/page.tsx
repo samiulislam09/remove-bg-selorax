@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import ProductTable, { type Product } from "./components/ProductTable";
+import ProductModal from "./components/ProductModal";
+import { useAppBridge } from "./contexts/AppBridgeContext";
 
 type ApiResponse = {
   data: Product[];
@@ -10,13 +12,17 @@ type ApiResponse = {
 };
 
 export default function Home() {
+  const { storeId, token } = useAppBridge();
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/api/products")
+    fetch(`/api/products?store_id=${storeId}`, {
+      headers: { "x-session-token": token },
+    })
       .then((res) => res.json())
       .then((data: ApiResponse) => {
         console.log("Products:", data);
@@ -54,9 +60,20 @@ export default function Home() {
             {error}
           </div>
         ) : (
-          <ProductTable products={products} />
+          <ProductTable
+            products={products}
+            onProductClick={(id) => setSelectedProductId(id)}
+          />
         )}
       </div>
+
+      {/* Product Detail Modal */}
+      {selectedProductId !== null && (
+        <ProductModal
+          productId={selectedProductId}
+          onClose={() => setSelectedProductId(null)}
+        />
+      )}
     </div>
   );
 }

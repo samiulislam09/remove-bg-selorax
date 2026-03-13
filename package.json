@@ -9,8 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
     "@selorax/app-sdk": "^2.0.1",
+    "axios": "^1.13.6",
     "next": "16.1.6",
+    "onnxruntime-web": "1.21.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "selorax-app-sdk": "^2.0.1"
