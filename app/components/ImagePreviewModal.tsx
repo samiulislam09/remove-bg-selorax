@@ -236,13 +236,17 @@ export default function ImagePreviewModal({
                   Reset
                 </button>
                 <button
-                  onClick={() => {
-                    const a = document.createElement("a");
-                    a.href = state.resultUrl!;
-                    a.download = `${alt}-nobg.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
+                  onClick={async () => {
+                    const res = await fetch(state.resultUrl!);
+                    const blob = await res.blob();
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      const a = document.createElement("a");
+                      a.href = reader.result as string;
+                      a.download = `${alt}-nobg.png`;
+                      a.click();
+                    };
+                    reader.readAsDataURL(blob);
                   }}
                   className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-200"
                 >
