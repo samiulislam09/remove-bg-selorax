@@ -9,6 +9,7 @@ type ApiResponse = {
   data: Product[];
   pagination?: { page: number; limit: number; total: number };
   total?: number;
+  message?: string;
   status: number;
 };
 
@@ -27,8 +28,12 @@ export default function Home() {
       .then((res) => res.json())
       .then((data: ApiResponse) => {
         console.log("Products:", data);
-        setProducts(data.data ?? []);
-        setTotal(data.pagination?.total ?? data.total ?? 0);
+        if (!data.data) {
+          setError(data.message || "Unexpected API response");
+          return;
+        }
+        setProducts(data.data);
+        setTotal(data.pagination?.total ?? data.total ?? data.data.length);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
