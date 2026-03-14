@@ -92,9 +92,9 @@ export default function ImagePreviewModal({
       imageKeys[imageIndex] = newStoredKey;
       const updatedImages = imageKeys.join(",");
 
-      // 4. Update the variant
+      // 4. Update the variant's images (replace old image with bg-removed one)
       const updateRes = await fetch(
-        `/api/products/${productId}/variants/${skuId}?store_id=${storeId}`,
+        `/api/products/${productId}/variants/${skuId}`,
         {
           method: "PUT",
           headers: {

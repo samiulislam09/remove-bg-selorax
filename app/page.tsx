@@ -37,7 +37,7 @@ export default function Home() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [storeId, token]);
 
   return (
     <div className="min-h-screen bg-zinc-50 px-6 py-12 font-sans">

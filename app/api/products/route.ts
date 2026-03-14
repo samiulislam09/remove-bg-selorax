@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BASE_URL = process.env.BASE_URL!;
-const CLIENT_ID = process.env.SELORAX_CLIENT_ID!;
-const CLIENT_SECRET = process.env.SELORAX_CLIENT_SECRET!;
-
 export async function GET(req: NextRequest) {
   const storeId = req.nextUrl.searchParams.get("store_id");
   if (!storeId) {
@@ -11,10 +7,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`${BASE_URL}/api/apps/v1/products`, {
+    console.log("ENV CHECK:", {
+      BASE_URL: process.env.BASE_URL,
+      CLIENT_ID: process.env.SELORAX_CLIENT_ID ? "set" : "undefined",
+      allKeys: Object.keys(process.env).filter(k => k.includes("BASE") || k.includes("SELORAX")),
+    });
+    const res = await fetch(`${process.env.BASE_URL}/api/apps/v1/products`, {
       headers: {
-        "X-Client-Id": CLIENT_ID,
-        "X-Client-Secret": CLIENT_SECRET,
+        "X-Client-Id": process.env.SELORAX_CLIENT_ID!,
+        "X-Client-Secret": process.env.SELORAX_CLIENT_SECRET!,
         "X-Store-Id": storeId,
       },
     });
