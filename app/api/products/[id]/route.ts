@@ -26,6 +26,7 @@ export async function GET(
       return NextResponse.json(data, { status: res.status });
     }
 
+    console.log("Raw variant images:", data.data?.variants?.map((v: { sku_id: number; images: string }) => ({ sku_id: v.sku_id, images: v.images })));
     data.data = resolveProductImages(data.data);
     return NextResponse.json(data);
   } catch (err: unknown) {

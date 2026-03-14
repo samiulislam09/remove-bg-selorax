@@ -4,23 +4,25 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; skuId: string }> }
 ) {
-  const sessionToken = req.headers.get("x-session-token");
-  if (!sessionToken) {
-    return NextResponse.json({ message: "session token is required" }, { status: 401 });
+  const storeId = req.nextUrl.searchParams.get("store_id");
+  if (!storeId) {
+    return NextResponse.json({ message: "store_id is required" }, { status: 400 });
   }
 
-  const { skuId } = await params;
+  const { id, skuId } = await params;
 
   try {
     const body = await req.json();
 
     const res = await fetch(
-      `${process.env.BASE_URL}/api/product-variants/${skuId}`,
+      `${process.env.BASE_URL}/api/apps/v1/products/${id}/variants/${skuId}`,
       {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": sessionToken,
+          "X-Client-Id": process.env.SELORAX_CLIENT_ID!,
+          "X-Client-Secret": process.env.SELORAX_CLIENT_SECRET!,
+          "X-Store-Id": storeId,
         },
         body: JSON.stringify(body),
       }
