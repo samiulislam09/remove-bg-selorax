@@ -7,7 +7,8 @@ import { useAppBridge } from "./contexts/AppBridgeContext";
 
 type ApiResponse = {
   data: Product[];
-  pagination: { page: number; limit: number; total: number };
+  pagination?: { page: number; limit: number; total: number };
+  total?: number;
   status: number;
 };
 
@@ -26,8 +27,8 @@ export default function Home() {
       .then((res) => res.json())
       .then((data: ApiResponse) => {
         console.log("Products:", data);
-        setProducts(data.data);
-        setTotal(data.pagination.total);
+        setProducts(data.data ?? []);
+        setTotal(data.pagination?.total ?? data.total ?? 0);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
