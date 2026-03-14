@@ -235,13 +235,19 @@ export default function ImagePreviewModal({
                 >
                   Reset
                 </button>
-                <a
-                  href={state.resultUrl!}
-                  download={`${alt}-nobg.png`}
+                <button
+                  onClick={() => {
+                    const a = document.createElement("a");
+                    a.href = state.resultUrl!;
+                    a.download = `${alt}-nobg.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }}
                   className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-200"
                 >
                   Download
-                </a>
+                </button>
                 {!saved && (
                   <button
                     onClick={handleSave}
