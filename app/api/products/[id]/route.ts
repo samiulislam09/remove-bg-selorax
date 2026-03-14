@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveProductImages } from "@/app/lib/image";
 
-const BASE_URL = process.env.BASE_URL!;
-const CLIENT_ID = process.env.SELORAX_CLIENT_ID!;
-const CLIENT_SECRET = process.env.SELORAX_CLIENT_SECRET!;
-
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -17,10 +13,10 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const res = await fetch(`${BASE_URL}/api/apps/v1/products/${id}`, {
+    const res = await fetch(`${process.env.BASE_URL}/api/apps/v1/products/${id}`, {
       headers: {
-        "X-Client-Id": CLIENT_ID,
-        "X-Client-Secret": CLIENT_SECRET,
+        "X-Client-Id": process.env.SELORAX_CLIENT_ID!,
+        "X-Client-Secret": process.env.SELORAX_CLIENT_SECRET!,
         "X-Store-Id": storeId,
       },
     });
