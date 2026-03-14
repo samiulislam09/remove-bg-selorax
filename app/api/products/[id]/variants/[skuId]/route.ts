@@ -9,22 +9,27 @@ export async function PUT(
     return NextResponse.json({ message: "store_id is required" }, { status: 400 });
   }
 
-  const { id, skuId } = await params;
+  const sessionToken = req.headers.get("x-session-token");
+  if (!sessionToken) {
+    return NextResponse.json({ message: "session token is required" }, { status: 401 });
+  }
+
+  const { skuId } = await params;
 
   try {
     const body = await req.json();
 
+    // Using regular backend endpoint — apps API has an updated_at column bug
     const res = await fetch(
-      `${process.env.BASE_URL}/api/apps/v1/products/${id}/variants/${skuId}`,
+      `${process.env.BASE_URL}/api/product-variants/${skuId}`,
       {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "X-Client-Id": process.env.SELORAX_CLIENT_ID!,
-          "X-Client-Secret": process.env.SELORAX_CLIENT_SECRET!,
-          "X-Store-Id": storeId,
+          "x-auth-token": sessionToken,
+          "store_id": storeId,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, store_id: storeId }),
       }
     );
 

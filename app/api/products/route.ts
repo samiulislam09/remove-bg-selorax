@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getImageUrl } from "@/app/lib/image";
 
 export async function GET(req: NextRequest) {
   const storeId = req.nextUrl.searchParams.get("store_id");
@@ -6,27 +7,47 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "store_id is required" }, { status: 400 });
   }
 
+  const headers = {
+    "X-Client-Id": process.env.SELORAX_CLIENT_ID!,
+    "X-Client-Secret": process.env.SELORAX_CLIENT_SECRET!,
+    "X-Store-Id": storeId,
+  };
+
   try {
-    console.log("ENV CHECK:", {
-      BASE_URL: process.env.BASE_URL,
-      CLIENT_ID: process.env.SELORAX_CLIENT_ID ? "set" : "undefined",
-      allKeys: Object.keys(process.env).filter(k => k.includes("BASE") || k.includes("SELORAX")),
-    });
     const res = await fetch(`${process.env.BASE_URL}/api/apps/v1/products`, {
-      headers: {
-        "X-Client-Id": process.env.SELORAX_CLIENT_ID!,
-        "X-Client-Secret": process.env.SELORAX_CLIENT_SECRET!,
-        "X-Store-Id": storeId,
-      },
+      headers,
     });
 
     const data = await res.json();
-    console.log("SeloraX API response:", JSON.stringify(data, null, 2));
     if (!res.ok) {
       return NextResponse.json(data, { status: res.status });
     }
 
-    return NextResponse.json(data);
+    // Fetch each product's details in parallel to get the first image
+    const products = data.data ?? [];
+    const enriched = await Promise.all(
+      products.map(async (p: { product_id: number }) => {
+        try {
+          const detailRes = await fetch(
+            `${process.env.BASE_URL}/api/apps/v1/products/${p.product_id}`,
+            { headers }
+          );
+          if (!detailRes.ok) return { ...p, thumbnail: null };
+          const detail = await detailRes.json();
+          const variants = detail.data?.variants ?? [];
+          const firstImage = variants
+            .map((v: { images?: string | null }) => v.images)
+            .filter(Boolean)
+            .flatMap((img: string) => img.split(",").map((s: string) => s.trim()))
+            .find(Boolean);
+          return { ...p, thumbnail: firstImage ? getImageUrl(firstImage) : null };
+        } catch {
+          return { ...p, thumbnail: null };
+        }
+      })
+    );
+
+    return NextResponse.json({ ...data, data: enriched });
   } catch (err: unknown) {
     const error = err as { message?: string };
     return NextResponse.json(
