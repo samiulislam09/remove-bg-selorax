@@ -52,7 +52,14 @@ export default function ProductModal({ productId, onClose }: Props) {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<{ url: string; alt: string } | null>(null);
+  const [previewImage, setPreviewImage] = useState<{
+    url: string;
+    alt: string;
+    productId: number;
+    skuId: number;
+    images: string;
+    imageIndex: number;
+  } | null>(null);
 
   useEffect(() => {
     fetch(`/api/products/${productId}?store_id=${storeId}`, {
@@ -135,8 +142,15 @@ export default function ProductModal({ productId, onClose }: Props) {
                     images={headerImages}
                     alt={product.name}
                     size="lg"
-                    onImageClick={(url) =>
-                      setPreviewImage({ url, alt: product.name })
+                    onImageClick={(url, index) =>
+                      setPreviewImage({
+                        url,
+                        alt: product.name,
+                        productId: product.product_id,
+                        skuId: defaultVariant.sku_id,
+                        images: defaultVariant.images ?? "",
+                        imageIndex: index,
+                      })
                     }
                   />
                 </div>
@@ -211,8 +225,15 @@ export default function ProductModal({ productId, onClose }: Props) {
                             images={v.resolved_images}
                             alt={v.variant_name}
                             size="md"
-                            onImageClick={(url) =>
-                              setPreviewImage({ url, alt: v.variant_name })
+                            onImageClick={(url, index) =>
+                              setPreviewImage({
+                                url,
+                                alt: v.variant_name,
+                                productId: product.product_id,
+                                skuId: v.sku_id,
+                                images: v.images ?? "",
+                                imageIndex: index,
+                              })
                             }
                           />
 
@@ -265,6 +286,10 @@ export default function ProductModal({ productId, onClose }: Props) {
         <ImagePreviewModal
           imageUrl={previewImage.url}
           alt={previewImage.alt}
+          productId={previewImage.productId}
+          skuId={previewImage.skuId}
+          images={previewImage.images}
+          imageIndex={previewImage.imageIndex}
           onClose={() => setPreviewImage(null)}
         />
       )}

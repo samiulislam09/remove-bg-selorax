@@ -1,15 +1,29 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useBackgroundRemoval } from "../hooks/useBackgroundRemoval";
+import { useAppBridge } from "../contexts/AppBridgeContext";
 
 type Props = {
   imageUrl: string;
   alt: string;
+  productId: number;
+  skuId: number;
+  images: string;
+  imageIndex: number;
   onClose: () => void;
 };
 
-export default function ImagePreviewModal({ imageUrl, alt, onClose }: Props) {
+export default function ImagePreviewModal({
+  imageUrl,
+  alt,
+  productId,
+  skuId,
+  images,
+  imageIndex,
+  onClose,
+}: Props) {
+  const { storeId, token } = useAppBridge();
   const { getState, removeBackground, reset } = useBackgroundRemoval();
 
   const bgKey = imageUrl;
@@ -18,6 +32,10 @@ export default function ImagePreviewModal({ imageUrl, alt, onClose }: Props) {
   const isDone = state.status === "done";
   const isError = state.status === "error";
   const displayUrl = isDone && state.resultUrl ? state.resultUrl : imageUrl;
+
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent) => {
@@ -33,6 +51,72 @@ export default function ImagePreviewModal({ imageUrl, alt, onClose }: Props) {
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [onClose]);
+
+  const handleSave = useCallback(async () => {
+    if (!state.resultUrl) return;
+
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      // 1. Convert blob URL to File
+      const blobRes = await fetch(state.resultUrl);
+      const blob = await blobRes.blob();
+      const file = new File([blob], `${alt}-nobg.png`, { type: "image/png" });
+
+      // 2. Upload to SeloraX
+      const formData = new FormData();
+      formData.append("files", file);
+
+      const uploadRes = await fetch(
+        `/api/products/${productId}/images?store_id=${storeId}`,
+        {
+          method: "POST",
+          headers: { "x-session-token": token },
+          body: formData,
+        }
+      );
+
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) {
+        throw new Error(uploadData.message || "Upload failed");
+      }
+
+      const newStoredKey = uploadData.data[0].stored_key;
+
+      // 3. Replace the old image key in the variant's images string
+      const imageKeys = images
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+      imageKeys[imageIndex] = newStoredKey;
+      const updatedImages = imageKeys.join(",");
+
+      // 4. Update the variant
+      const updateRes = await fetch(
+        `/api/products/${productId}/variants/${skuId}?store_id=${storeId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-token": token,
+          },
+          body: JSON.stringify({ images: updatedImages }),
+        }
+      );
+
+      const updateData = await updateRes.json();
+      if (!updateRes.ok) {
+        throw new Error(updateData.message || "Failed to update variant");
+      }
+
+      setSaved(true);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }, [state.resultUrl, productId, skuId, storeId, token, images, imageIndex, alt]);
 
   return (
     <div
@@ -99,6 +183,16 @@ export default function ImagePreviewModal({ imageUrl, alt, onClose }: Props) {
               </div>
             </div>
           )}
+
+          {/* Saving overlay */}
+          {saving && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/70 backdrop-blur-sm">
+              <div className="h-8 w-8 animate-spin rounded-full border-3 border-zinc-200 border-t-emerald-600" />
+              <p className="text-sm font-medium text-zinc-700">
+                Saving to store…
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Bottom action bar */}
@@ -109,7 +203,15 @@ export default function ImagePreviewModal({ imageUrl, alt, onClose }: Props) {
                 Failed to remove background. Try again.
               </span>
             )}
-            {isDone && (
+            {saveError && (
+              <span className="text-red-500">{saveError}</span>
+            )}
+            {saved && (
+              <span className="text-emerald-600">
+                Saved to store successfully
+              </span>
+            )}
+            {isDone && !saved && !saveError && (
               <span className="text-emerald-600">
                 Background removed successfully
               </span>
@@ -123,18 +225,32 @@ export default function ImagePreviewModal({ imageUrl, alt, onClose }: Props) {
             {isDone && (
               <>
                 <button
-                  onClick={() => reset(bgKey)}
-                  className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
+                  onClick={() => {
+                    reset(bgKey);
+                    setSaved(false);
+                    setSaveError(null);
+                  }}
+                  disabled={saving}
+                  className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 disabled:opacity-50"
                 >
                   Reset
                 </button>
                 <a
                   href={state.resultUrl!}
                   download={`${alt}-nobg.png`}
-                  className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600"
+                  className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-200"
                 >
-                  Download PNG
+                  Download
                 </a>
+                {!saved && (
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="rounded-lg bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {saving ? "Saving…" : "Save to Store"}
+                  </button>
+                )}
               </>
             )}
             {!isDone && (

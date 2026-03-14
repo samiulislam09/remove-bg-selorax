@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { seloraxApi } = require("@selorax/app-sdk");
+const BASE_URL = process.env.BASE_URL!;
+const CLIENT_ID = process.env.SELORAX_CLIENT_ID!;
+const CLIENT_SECRET = process.env.SELORAX_CLIENT_SECRET!;
 
 export async function GET(req: NextRequest) {
   const storeId = req.nextUrl.searchParams.get("store_id");
@@ -10,14 +11,25 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const data = await seloraxApi.products.list(storeId);
-    console.log("Products:", JSON.stringify(data, null, 2));
+    const res = await fetch(`${BASE_URL}/api/apps/v1/products`, {
+      headers: {
+        "X-Client-Id": CLIENT_ID,
+        "X-Client-Secret": CLIENT_SECRET,
+        "X-Store-Id": storeId,
+      },
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
+    }
+
     return NextResponse.json(data);
   } catch (err: unknown) {
-    const error = err as { status?: number; data?: unknown; message?: string };
+    const error = err as { message?: string };
     return NextResponse.json(
-      error.data || { message: error.message },
-      { status: error.status || 500 }
+      { message: error.message || "Failed to fetch products" },
+      { status: 500 }
     );
   }
 }
