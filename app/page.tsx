@@ -40,7 +40,7 @@ export default function Home() {
   }, [storeId, token]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-6 py-12 font-sans">
+    <div className="min-h-screen bg-zinc-50 px-6 py-6 font-sans">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-end justify-between">
