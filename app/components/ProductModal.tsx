@@ -71,7 +71,7 @@ export default function ProductModal({ productId, onClose }: Props) {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [productId]);
+  }, [productId, storeId, token]);
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent) => {

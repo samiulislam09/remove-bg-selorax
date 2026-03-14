@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     });
 
     const data = await res.json();
+    console.log("SeloraX API response:", JSON.stringify(data, null, 2));
     if (!res.ok) {
       return NextResponse.json(data, { status: res.status });
     }
